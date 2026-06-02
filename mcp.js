@@ -167,10 +167,21 @@ function createMcpServer() {
   return server;
 }
 
+function requireApiKey(req, res, next) {
+  const apiKey = process.env.MCP_API_KEY;
+  if (!apiKey) return next(); // no key configured = open (dev mode)
+  const provided = req.headers['x-api-key'];
+  if (!provided || provided !== apiKey) {
+    res.status(401).json({ error: 'Invalid or missing X-API-Key header' });
+    return;
+  }
+  next();
+}
+
 function setupMcpRoutes(app) {
   const transports = {};
 
-  app.get('/sse', async (req, res) => {
+  app.get('/sse', requireApiKey, async (req, res) => {
     const transport = new SSEServerTransport('/messages', res);
     transports[transport.sessionId] = transport;
     res.on('close', () => delete transports[transport.sessionId]);
@@ -178,7 +189,7 @@ function setupMcpRoutes(app) {
     await server.connect(transport);
   });
 
-  app.post('/messages', async (req, res) => {
+  app.post('/messages', requireApiKey, async (req, res) => {
     const transport = transports[req.query.sessionId];
     if (!transport) return res.status(400).json({ error: 'Session not found' });
     await transport.handlePostMessage(req, res, req.body);
