@@ -14,6 +14,14 @@ function computeToken(secret) {
   return crypto.createHmac('sha256', secret).update('mcp-v1').digest('base64url');
 }
 
+// Pre-registered OAuth clients (hardcoded for Claude Desktop)
+const registeredClients = new Map([
+  ['claude-desktop-client', {
+    clientId: 'claude-desktop-client',
+    redirectUris: ['https://claude.ai/oauth/callback'],
+  }],
+]);
+
 // Short-lived authorization codes (in-memory, 5 min TTL)
 const pendingCodes = new Map();
 // In-memory tokens for when OAUTH_SECRET is not set
@@ -26,11 +34,35 @@ function setupOAuthRoutes(app) {
       issuer: BASE_URL,
       authorization_endpoint: `${BASE_URL}/oauth/authorize`,
       token_endpoint: `${BASE_URL}/oauth/token`,
+      registration_endpoint: `${BASE_URL}/oauth/register`,
       revocation_endpoint: `${BASE_URL}/oauth/revoke`,
       response_types_supported: ['code'],
       grant_types_supported: ['authorization_code'],
       code_challenge_methods_supported: ['S256'],
       token_endpoint_auth_methods_supported: ['none'],
+    });
+  });
+
+  // Dynamic Client Registration (RFC 7591) – Claude Desktop calls this automatically
+  app.post('/oauth/register', (req, res) => {
+    const { redirect_uris, client_name } = req.body || {};
+
+    // Always return 'claude-desktop-client' as the fixed client ID for this personal server
+    const clientId = 'claude-desktop-client';
+
+    registeredClients.set(clientId, {
+      clientId,
+      redirectUris: redirect_uris || ['https://claude.ai/oauth/callback'],
+      clientName: client_name || 'Claude Desktop',
+    });
+
+    res.status(201).json({
+      client_id: clientId,
+      client_id_issued_at: Math.floor(Date.now() / 1000),
+      redirect_uris: redirect_uris || ['https://claude.ai/oauth/callback'],
+      grant_types: ['authorization_code'],
+      response_types: ['code'],
+      token_endpoint_auth_method: 'none',
     });
   });
 
@@ -50,7 +82,7 @@ function setupOAuthRoutes(app) {
 
     const code = crypto.randomBytes(24).toString('base64url');
     pendingCodes.set(code, {
-      clientId: client_id || '',
+      clientId: client_id || 'claude-desktop-client',
       redirectUri: redirect_uri,
       codeChallenge: code_challenge,
       codeChallengeMethod: code_challenge_method || 'S256',
@@ -108,7 +140,7 @@ function setupOAuthRoutes(app) {
     });
   });
 
-  // Revocation endpoint (no-op for deterministic tokens)
+  // Revocation endpoint
   app.post('/oauth/revoke', (req, res) => {
     const { token } = req.body || {};
     if (token) issuedTokens.delete(token);
