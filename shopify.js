@@ -1,23 +1,25 @@
-const STORE = process.env.SHOPIFY_STORE || 'mososhop.myshopify.com';
-const TOKEN = process.env.SHOPIFY_ACCESS_TOKEN;
 const API_VERSION = '2024-01';
 
-const REST_BASE = `https://${STORE}/admin/api/${API_VERSION}`;
-const GQL_URL = `https://${STORE}/admin/api/${API_VERSION}/graphql.json`;
+function getStore() {
+  return process.env.SHOPIFY_STORE || 'mososhop.myshopify.com';
+}
 
 function authHeaders() {
-  if (!TOKEN) throw new Error('SHOPIFY_ACCESS_TOKEN is not set');
-  return { 'X-Shopify-Access-Token': TOKEN, 'Content-Type': 'application/json' };
+  const token = process.env.SHOPIFY_ACCESS_TOKEN;
+  if (!token) throw new Error('SHOPIFY_ACCESS_TOKEN is not set');
+  return { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' };
 }
 
 async function restGet(path) {
-  const res = await fetch(`${REST_BASE}${path}`, { headers: authHeaders() });
+  const store = getStore();
+  const res = await fetch(`https://${store}/admin/api/${API_VERSION}${path}`, { headers: authHeaders() });
   if (!res.ok) throw new Error(`Shopify REST ${res.status}: ${await res.text()}`);
   return res.json();
 }
 
 async function restPut(path, body) {
-  const res = await fetch(`${REST_BASE}${path}`, {
+  const store = getStore();
+  const res = await fetch(`https://${store}/admin/api/${API_VERSION}${path}`, {
     method: 'PUT',
     headers: authHeaders(),
     body: JSON.stringify(body)
@@ -27,7 +29,8 @@ async function restPut(path, body) {
 }
 
 async function gql(query, variables = {}) {
-  const res = await fetch(GQL_URL, {
+  const store = getStore();
+  const res = await fetch(`https://${store}/admin/api/${API_VERSION}/graphql.json`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify({ query, variables })
