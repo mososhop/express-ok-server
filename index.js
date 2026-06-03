@@ -8,7 +8,7 @@ const port = process.env.PORT || 3000;
 console.log('Startup env check:', {
   PORT: port,
   SHOPIFY_ACCESS_TOKEN: process.env.SHOPIFY_ACCESS_TOKEN ? `SET (${process.env.SHOPIFY_ACCESS_TOKEN.length} chars)` : 'NOT SET',
-  SHOPIFY_STORE: process.env.SHOPIFY_STORE || 'mososhop.myshopify.com (default)',
+  SHOPIFY_STORE: process.env.SHOPIFY_STORE || '77057e.myshopify.com (default)',
   OAUTH_SECRET: process.env.OAUTH_SECRET ? 'SET' : 'NOT SET',
   MCP_API_KEY: process.env.MCP_API_KEY ? 'SET' : 'NOT SET',
 });

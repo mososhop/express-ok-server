@@ -1,7 +1,7 @@
 const API_VERSION = '2024-01';
 
 function getStore() {
-  return process.env.SHOPIFY_STORE || 'mososhop.myshopify.com';
+  return process.env.SHOPIFY_STORE || '77057e.myshopify.com';
 }
 
 function authHeaders() {
@@ -12,29 +12,38 @@ function authHeaders() {
 
 async function restGet(path) {
   const store = getStore();
-  const res = await fetch(`https://${store}/admin/api/${API_VERSION}${path}`, { headers: authHeaders() });
+  const url = `https://${store}/admin/api/${API_VERSION}${path}`;
+  console.log(`[Shopify] GET ${url}`);
+  const res = await fetch(url, { headers: authHeaders() });
+  console.log(`[Shopify] GET ${url} → ${res.status}`);
   if (!res.ok) throw new Error(`Shopify REST ${res.status}: ${await res.text()}`);
   return res.json();
 }
 
 async function restPut(path, body) {
   const store = getStore();
-  const res = await fetch(`https://${store}/admin/api/${API_VERSION}${path}`, {
+  const url = `https://${store}/admin/api/${API_VERSION}${path}`;
+  console.log(`[Shopify] PUT ${url}`);
+  const res = await fetch(url, {
     method: 'PUT',
     headers: authHeaders(),
     body: JSON.stringify(body)
   });
+  console.log(`[Shopify] PUT ${url} → ${res.status}`);
   if (!res.ok) throw new Error(`Shopify REST ${res.status}: ${await res.text()}`);
   return res.json();
 }
 
 async function gql(query, variables = {}) {
   const store = getStore();
-  const res = await fetch(`https://${store}/admin/api/${API_VERSION}/graphql.json`, {
+  const url = `https://${store}/admin/api/${API_VERSION}/graphql.json`;
+  console.log(`[Shopify] GQL ${url}`);
+  const res = await fetch(url, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify({ query, variables })
   });
+  console.log(`[Shopify] GQL ${url} → ${res.status}`);
   if (!res.ok) throw new Error(`Shopify GraphQL ${res.status}: ${await res.text()}`);
   const json = await res.json();
   if (json.errors?.length) throw new Error(json.errors.map(e => e.message).join('; '));
